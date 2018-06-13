@@ -293,11 +293,11 @@ int main (int argc, char **argv)
     if(fastq2)
     {
       strncpy(filename2,prefix_out2,FILENAME_MAX);
+      strncat(filename2,"_",FILENAME_MAX);
       strncat(filename2,barcodes[i],FILENAME_MAX);
       if(barcodesj[i])
       {
         strncat(filename2,":",FILENAME_MAX);
-        strncat(filename2,"_",FILENAME_MAX);
         strncat(filename2,barcodesj[i],FILENAME_MAX);
       }
       strncat(filename2,".fastq",FILENAME_MAX);

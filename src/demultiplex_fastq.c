@@ -33,7 +33,7 @@ void demultiplex_debug_catch_signal(int sig_num)
         "\n$ gdb -ex=bt --batch PROGRAMM_NAME CORE_FILE\n"
         "If there is no core file, enable coredumps in your shell and run again:\n"
         "$ ulimit -c unlimited\n\n");
-    fprintf (stderr, "Please report this to Andy Hauser <hauser@genzentrum.lmu.de>.\n");
+    fprintf (stderr, "Please report this to Andy Hauser <Andreas.Hauser@lmu.de>.\n");
 
   //exit(sig_num);
   abort();

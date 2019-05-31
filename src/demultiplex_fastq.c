@@ -126,7 +126,7 @@ void print_indexed_seq(FILE *fout1, kseq_t *seq1, kseq_t *seqi, kseq_t *seqj)
 }
 
 /* Flag set by ‘--verbose’. */
-static int verbose_flag;
+int verbose_flag;
 
 int main (int argc, char **argv)
 {
@@ -139,6 +139,9 @@ int main (int argc, char **argv)
   gzFile fq1 = NULL, fq2 = NULL, fqi = NULL, fqj = NULL;
   kseq_t *seq1, *seq2 = NULL, *seqi, *seqj = NULL;
   int l1,l2,li,lj;
+  /* Flag set by ‘--no_other’. */
+  int no_other = 0;
+
 
   int c;
 
@@ -156,18 +159,19 @@ int main (int argc, char **argv)
   {
     static struct option long_options[] =
     {
-      {"verbose", no_argument,       &verbose_flag, 1},
-      {"r1",  required_argument, 0, '1'},
-      {"r2",  required_argument, 0, '2'},
-      {"i1",   required_argument, 0, 'i'},
-      {"i2",   required_argument, 0, 'j'},
+      {"verbose",    no_argument,       &verbose_flag, 1},
+      {"no_other",   no_argument,       0, 'n'},
+      {"r1",         required_argument, 0, '1'},
+      {"r2",         required_argument, 0, '2'},
+      {"i1",         required_argument, 0, 'i'},
+      {"i2",         required_argument, 0, 'j'},
       {"barcodes",   required_argument, 0, 'b'},
       {"prefix",     required_argument, 0, 'p'},
       {"prefix2",    required_argument, 0, 'q'},
       {0, 0, 0, 0}
     };
     int option_index = 0;
-    c = getopt_long(argc, argv, "v1:2:i:j:b:p:q:", long_options, &option_index);
+    c = getopt_long(argc, argv, "v1:2:i:j:b:p:q:n", long_options, &option_index);
 
     if (c == -1)
       break;
@@ -202,6 +206,10 @@ int main (int argc, char **argv)
       case '2':
         //printf ("option -2 with value `%s'\n", optarg);
         fastq2 = optarg;
+        break;
+
+      case 'n':
+        no_other = 1;
         break;
 
       case 'p':
@@ -250,9 +258,17 @@ int main (int argc, char **argv)
     return EXIT_FAILURE;
   }
 
-  if (fastq1 == '\0' || barcodes == '\0')
+  if (fastq1 == NULL || barcodes == NULL)
   {
-    fprintf(stderr, "Usage: %s [-p PREFIX] --r1 FASTQ1 [--r2 FASTQ2] --i1 FASTQ_INDEX [--i2 FASTQ_INDEX2] -b BARCODE1,BARCODE2[,...]\n", argv[0]);
+    fprintf(stderr, "Usage: %s [-n] [-p PREFIX] --r1 FASTQ1 [--r2 FASTQ2] --i1 FASTQ_INDEX [--i2 FASTQ_INDEX2] -b BARCODE1,BARCODE2[,...]\n", argv[0]);
+    fprintf(stderr, "  --no_other,-n	Do not output non matching barcodes into OTHER file\n"
+                    "  --prefix,-p PREFIX	prefix output filenames with PREFIX\n"
+                    "  --r1 FASTQ1 	fastq file with reads\n"
+                    "  --r2 FASTQ2	paired fastq file with reads\n"
+                    "  --i1 FASTQ_INDEX	fist index read\n"
+                    "  --i2 FASTQ_INDEX2	second index read\n"
+                    "  --barcodes, -b BARCODE1,BARCODE2,...	barcodes, comma separated\n"
+                    "\n	written by Andreas.Hauser@LMU.de\n");
     return EXIT_FAILURE;
   }
 
@@ -267,8 +283,11 @@ int main (int argc, char **argv)
   char *filename1 = calloc(FILENAME_MAX,sizeof(char));
   char *filename2 = calloc(FILENAME_MAX,sizeof(char));
   int i;
-  barcodes[n_barcodes] = "OTHER"; // pseudobarcode, at last entry
-  barcodesj[n_barcodes] = "OTHER"; // pseudobarcode, at last entry
+  if(!no_other)
+  {
+    barcodes[n_barcodes] = "OTHER"; // pseudobarcode, at last entry
+    barcodesj[n_barcodes] = "OTHER"; // pseudobarcode, at last entry
+  }
   for(i = 0; barcodes[i] != NULL; i++)
   {
     barcode_len[i]  = strnlen(barcodes[i],FILENAME_MAX);
@@ -359,7 +378,12 @@ int main (int argc, char **argv)
           break;
 
     if(barcodes[i] == NULL)
-      i--; // use pseudobarcode at last entry in barcode mapping
+    {
+      if(no_other == 0)
+        i--; // use pseudobarcode at last entry in barcode mapping
+      else
+        continue;
+    }
 
     fout1   = barcode_files1[i];
     print_indexed_seq(fout1, seq1, seqi, seqj);
